@@ -1,11 +1,21 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 function App() {
+  const [siret, setSiret] = useState(false);
+
   const userSchema = yup.object({
     title: yup.string().nullable().required("Le champ est obligatoire"),
     type: yup.string().required("Le champ est obligatoire"),
+    siret: yup
+      .string()
+      .nullable()
+      .when("type", {
+        is: "pro",
+        then: yup.string().nullable().required("Le champ est obligatoire"),
+      }),
     lastname: yup
       .string()
       .required("Le champ est obligatoire")
@@ -43,6 +53,7 @@ function App() {
   const defaultValues = {
     title: null,
     type: "",
+    siret: null,
     firstname: "",
     lastname: "",
     password: "",
@@ -79,6 +90,7 @@ function App() {
         const results = await response.json();
         console.log(results);
         reset(defaultValues);
+        setSiret(false);
         // throw new Error("Ceci est une erreur de test");
       }
     } catch (err) {
@@ -87,6 +99,14 @@ function App() {
       //   type: "globalErr",
       //   message: err.message,
       // });
+    }
+  };
+
+  const handleTypeChange = (event) => {
+    if (event.target.value === "pro") {
+      setSiret(true);
+    } else {
+      setSiret(false);
     }
   };
 
@@ -107,6 +127,51 @@ function App() {
         )}
 
         <div className="column is-6">
+          <div className="field">
+            <label htmlFor="type" className="label">
+              Type de compte
+            </label>
+            <div className={`select${errors?.type ? " is-danger" : ""}`}>
+              <select
+                id="type"
+                {...register("type")}
+                onChange={handleTypeChange}
+              >
+                <option value="" disabled>
+                  Choisissez un type de compte
+                </option>
+                <option value="pro">Professionnel</option>
+                <option value="part">Particulier</option>
+              </select>
+            </div>
+            {errors?.type && (
+              <p className="help is-danger">{errors.type.message}</p>
+            )}
+          </div>
+        </div>
+
+        {siret && (
+          <div className="column is-6">
+            <div className="field">
+              <label htmlFor="siret" className="label">
+                N° de SIRET
+              </label>
+              <div className="control">
+                <input
+                  className={`input${errors?.siret ? " is-danger" : ""}`}
+                  id="siret"
+                  type="text"
+                  {...register("siret")}
+                />
+              </div>
+              {errors?.siret && (
+                <p className="help is-danger">{errors.siret.message}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="column is-12">
           <div className="field">
             <label className="label">Civilité</label>
             <div className="control">
@@ -133,26 +198,6 @@ function App() {
             </div>
             {errors?.title && (
               <p className="help is-danger">{errors.title.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="column is-6">
-          <div className="field">
-            <label htmlFor="type" className="label">
-              Type de compte
-            </label>
-            <div className={`select${errors?.type ? " is-danger" : ""}`}>
-              <select id="type" {...register("type")}>
-                <option value="" disabled>
-                  Choisissez un type de compte
-                </option>
-                <option value="pro">Professionnel</option>
-                <option value="part">Particulier</option>
-              </select>
-            </div>
-            {errors?.type && (
-              <p className="help is-danger">{errors.type.message}</p>
             )}
           </div>
         </div>
