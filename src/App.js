@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 function App() {
+  // STATE ---
   const [siret, setSiret] = useState(false);
 
+  // FORM ---
   const userSchema = yup.object({
     title: yup.string().nullable().required("Le champ est obligatoire"),
     type: yup.string().required("Le champ est obligatoire"),
@@ -44,6 +46,20 @@ function App() {
         [yup.ref("password"), ""],
         "Les mots de passes ne sont pas identiques"
       ),
+    hobbies: yup.array().of(
+      yup.object({
+        value: yup
+          .string()
+          .required("Le champ doit être renseigné ou bien annulé"),
+        level: yup
+          .string()
+          .required("Le niveau doit être renseigné")
+          .oneOf(
+            ["debutant", "inter", "avance"],
+            "Le niveau n'est pas reconnu"
+          ),
+      })
+    ),
     rgpd: yup
       .bool()
       .required("Le champ est obligatoire")
@@ -59,10 +75,12 @@ function App() {
     password: "",
     passwordConfirm: "",
     rgpd: false,
+    hobbies: [],
   };
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     // setError,
@@ -73,6 +91,13 @@ function App() {
     mode: "onSubmit",
     resolver: yupResolver(userSchema),
   });
+
+  const { fields, append, remove } = useFieldArray({
+    name: "hobbies",
+    control,
+  });
+
+  // HANDLERS ---
 
   const formSubmit = async (data, event) => {
     try {
@@ -110,6 +135,14 @@ function App() {
     }
   };
 
+  const handleAddHobby = () => {
+    append({ value: "", level: "debutant" });
+  };
+
+  const handleRemoveHobby = (index) => {
+    remove(index);
+  };
+
   return (
     <div className="container my-5 px-5">
       <h1 className="title is-4">Gestion des formulaires</h1>
@@ -131,7 +164,11 @@ function App() {
             <label htmlFor="type" className="label">
               Type de compte
             </label>
-            <div className={`select${errors?.type ? " is-danger" : ""}`}>
+            <div
+              className={`select is-fullwidth${
+                errors?.type ? " is-danger" : ""
+              }`}
+            >
               <select
                 id="type"
                 {...register("type")}
@@ -281,6 +318,65 @@ function App() {
         </div>
 
         <div className="column is-12">
+          <div className="label">
+            <label className="label">Centres d'intérêt</label>
+          </div>
+          <div className="field">
+            <button
+              type="button"
+              className="button is-info is-light"
+              onClick={handleAddHobby}
+            >
+              Ajouter
+            </button>
+          </div>
+        </div>
+
+        {fields.length > 0 &&
+          fields.map((item, index) => (
+            <div key={item.id} className="column is-6">
+              <div className="field has-addons">
+                <div className="control">
+                  <div className="select">
+                    <select {...register(`hobbies[${index}].level`)}>
+                      <option value="debutant">Débutant.e</option>
+                      <option value="inter">Intermédiaire</option>
+                      <option value="avance">Avancé.e</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="control is-expanded">
+                  <input
+                    className="input"
+                    type="text"
+                    {...register(`hobbies[${index}].value`)}
+                  />
+                </div>
+                <div className="control">
+                  <button
+                    type="button"
+                    className="button is-danger is-light"
+                    onClick={() => handleRemoveHobby(index)}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+              {errors.hobbies?.length > 0 &&
+                ((errors.hobbies[index]?.value && (
+                  <p className="help is-danger">
+                    {errors.hobbies[index].value.message}
+                  </p>
+                )) ||
+                  (errors.hobbies[index]?.level && (
+                    <p className="help is-danger">
+                      {errors.hobbies[index].level.message}
+                    </p>
+                  )))}
+            </div>
+          ))}
+
+        <div className="column is-12">
           <div className="field">
             <label className="checkbox">
               <input
@@ -302,7 +398,7 @@ function App() {
             <div className="control">
               <button
                 type="submit"
-                className="button is-link"
+                className="button is-info"
                 disabled={isSubmitting}
               >
                 Envoyer
